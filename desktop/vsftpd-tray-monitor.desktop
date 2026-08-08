@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=vsftpd Tray Monitor
+Comment=Monitor dello stato di vsftpd
+Exec=vsftpd-tray-monitor
+Icon=vsftpd-tray-monitor
+Terminal=false
+Categories=System;Network;

@@ -1,0 +1,520 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# vsftpd Tray Monitor - monitor di vsftpd nella tray di sistema.
+# GPLv3  2026  Gianluca Bolognesi
+#
+# Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+# secondo i termini della GNU General Public License come pubblicata dalla
+# Free Software Foundation, versione 3 della Licenza.
+#
+# Questo programma è distribuito nella speranza che sia utile, ma SENZA
+# ALCUNA GARANZIA; senza neppure la garanzia implicita di COMMERCIABILITÀ
+# o IDONEITÀ PER UN PARTICOLARE SCOPO. Vedi la GNU General Public License
+# per maggiori dettagli.
+#
+# Dovresti aver ricevuto una copia della GNU General Public License insieme
+# a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+
+import os
+import re
+import sys
+import subprocess
+import time
+
+try:
+    import gi
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk, GLib
+except Exception as exc:
+    raise SystemExit("GTK3/PyGObject non disponibile: %s" % exc)
+
+try:
+    gi.require_version("AppIndicator3", "0.1")
+    from gi.repository import AppIndicator3
+    HAVE_INDICATOR = True
+except Exception:
+    HAVE_INDICATOR = False
+
+try:
+    gi.require_version("Notify", "0.7")
+    from gi.repository import Notify
+    HAVE_NOTIFY = True
+except Exception:
+    HAVE_NOTIFY = False
+
+APP_NAME = "vsftpd-tray-monitor"
+APP_TITLE = "vsftpd Tray Monitor"
+AUTHOR = "Gianluca Bolognesi"
+VERSION = "v.260809"
+SERVICE = "vsftpd.service"
+CONFIG = "/etc/vsftpd-tray-monitor.conf"
+
+POLL = 2.0
+# Un trasferimento e' considerato "attivo" solo se avvenuto entro questo
+# numero di secondi: e' cio' che fa scambiare davvero le icone.
+ACTIVITY_TTL = 6.0
+
+
+def run(cmd):
+    try:
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        return (p.returncode,
+                out.decode("utf-8", "replace").strip(),
+                err.decode("utf-8", "replace").strip())
+    except Exception as e:
+        return 127, "", str(e)
+
+
+def service_state():
+    rc, out, err = run(["systemctl", "is-active", SERVICE])
+    if rc == 0 and out == "active":
+        return "active"
+    rc2, out2, err2 = run(["systemctl", "is-failed", SERVICE])
+    if out2 == "failed":
+        return "failed"
+    return "inactive"
+
+
+def service_details():
+    rc, out, err = run(["systemctl", "show", SERVICE,
+                        "--property=MainPID,ActiveEnterTimestamp,SubState,ExecMainStatus"])
+    d = {}
+    for line in out.splitlines():
+        if "=" in line:
+            k, v = line.split("=", 1)
+            d[k] = v
+    return d
+
+
+def journal_lines():
+    # short-unix mette il timestamp epoch all'inizio di ogni riga: cosi'
+    # possiamo filtrare per finestra temporale (TTL) e far scambiare le icone.
+    rc, out, err = run(["journalctl", "-u", SERVICE, "-n", "120",
+                        "--no-pager", "-o", "short-unix"])
+    return out.splitlines() if out else []
+
+
+def _line_epoch(line):
+    # short-unix: "1712345678.123456 host vsftpd[..]: ..."
+    m = re.match(r"^(\d+)(?:\.\d+)?\s", line)
+    if m:
+        try:
+            return float(m.group(1))
+        except Exception:
+            return None
+    return None
+
+
+def read_transfer_log_path():
+    path = None
+    if os.path.exists(CONFIG):
+        try:
+            for line in open(CONFIG, "r"):
+                line = line.strip()
+                if line.startswith("transfer_log="):
+                    path = line.split("=", 1)[1].strip()
+        except Exception:
+            pass
+    candidates = []
+    if path:
+        candidates.append(path)
+    candidates += [
+        "/var/log/vsftpd.log",
+        "/var/log/xferlog",
+        "/var/log/vsftpd/vsftpd.log",
+    ]
+    for p in candidates:
+        if p and os.path.isfile(p) and os.access(p, os.R_OK):
+            return p
+    return None
+
+
+# Timestamp in stile ctime del log nativo vsftpd:
+#   "Sat Aug  8 17:58:29 2026 [pid 21088] [shima] OK DOWNLOAD: ..."
+_CTIME_RE = re.compile(
+    r"^(\w{3}\s+\w{3}\s+\d{1,2}\s+\d{1,2}:\d{2}:\d{2}\s+\d{4})")
+
+
+def _ctime_epoch(line):
+    m = _CTIME_RE.match(line)
+    if not m:
+        return None
+    try:
+        return time.mktime(time.strptime(m.group(1), "%a %b %d %H:%M:%S %Y"))
+    except Exception:
+        return None
+
+
+def _classify_line(line):
+    # Ritorna 'read', 'write' o None in base al tipo di trasferimento.
+    # Formato NATIVO vsftpd (vsftpd_log_file / log_ftp_protocol):
+    #   OK DOWNLOAD / FAIL DOWNLOAD  -> lettura
+    #   OK UPLOAD   / FAIL UPLOAD    -> scrittura
+    if "DOWNLOAD:" in line:
+        return "read"
+    if "UPLOAD:" in line:
+        return "write"
+    # Formato xferlog standard: direzione 'o' (out=download) / 'i' (in=upload)
+    # come token isolato verso la fine della riga.
+    toks = line.split()
+    if "o" in toks:
+        return "read"
+    if "i" in toks:
+        return "write"
+    # Comandi di protocollo (log verboso): utile come fallback.
+    if "RETR " in line:
+        return "read"
+    if "STOR " in line:
+        return "write"
+    return None
+
+
+def _xferlog_recent(now):
+    # Legge il transfer log di vsftpd (se leggibile) e considera solo le
+    # righe entro il TTL. Gestisce sia il formato NATIVO vsftpd
+    # (timestamp ctime + OK/FAIL DOWNLOAD/UPLOAD) sia xferlog standard.
+    reads, writes, clients = [], [], set()
+    p = read_transfer_log_path()
+    if not p:
+        return None
+    try:
+        with open(p, "r", errors="replace") as f:
+            lines = f.readlines()[-300:]
+    except Exception:
+        return None
+
+    for line in lines:
+        line = line.rstrip("\n")
+        if not line.strip():
+            continue
+
+        # Timestamp: prima ctime (nativo vsftpd), poi eventuale epoch xferlog.
+        ts = _ctime_epoch(line)
+        if ts is None:
+            m = re.match(r"^(\w{3}\s+\w{3}\s+\d+\s+\d+:\d+:\d+\s+\d{4})", line)
+            if m:
+                try:
+                    ts = time.mktime(time.strptime(m.group(1)))
+                except Exception:
+                    ts = None
+
+        recent = (ts is None) or ((now - ts) <= ACTIVITY_TTL)
+
+        for ip in re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", line):
+            clients.add(ip)
+
+        if not recent:
+            continue
+
+        kind = _classify_line(line)
+        if kind == "read":
+            reads.append(line)
+        elif kind == "write":
+            writes.append(line)
+
+    return {"reads": reads[-5:], "writes": writes[-5:], "clients": sorted(clients)}
+
+
+def describe_line(line):
+    # Rende leggibile una riga del log nativo vsftpd per la notifica.
+    # Estrae utente, file ed esito quando presenti.
+    user = None
+    mu = re.search(r"\]\s+\[([^\]]+)\]", line)   # secondo [ ... ] = utente
+    if mu:
+        user = mu.group(1)
+    outcome = "OK" if " OK " in line or line.count("OK ") else None
+    if "FAIL " in line:
+        outcome = "FALLITO"
+    elif "OK " in line:
+        outcome = "OK"
+    if "DOWNLOAD" in line:
+        verb = "Download"
+    elif "UPLOAD" in line:
+        verb = "Upload"
+    elif "RETR " in line:
+        verb = "Download"
+    elif "STOR " in line:
+        verb = "Upload"
+    else:
+        verb = "Trasferimento"
+    fname = None
+    mf = re.search(r'"(/[^"]+)"', line)          # primo path tra virgolette
+    if mf:
+        fname = mf.group(1)
+    parts = [verb]
+    if outcome:
+        parts.append("(%s)" % outcome)
+    if fname:
+        parts.append(fname)
+    if user:
+        parts.append("- utente %s" % user)
+    return " ".join(parts)
+
+
+def parse_activity():
+    now = time.time()
+
+    # 1) Preferisci il transfer log se disponibile e leggibile: e' piu'
+    #    affidabile per direzione e timestamp.
+    xfer = _xferlog_recent(now)
+    if xfer is not None:
+        return xfer
+
+    # 2) Fallback: journal, ma filtrato per finestra temporale (TTL) cosi'
+    #    l'icona torna a "ok" quando l'attivita' finisce.
+    reads, writes, clients = [], [], set()
+    for line in journal_lines():
+        ep = _line_epoch(line)
+        recent = (ep is None) or ((now - ep) <= ACTIVITY_TTL)
+        for ip in re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", line):
+            clients.add(ip)
+        if not recent:
+            continue
+        if "RETR " in line:
+            reads.append(line)
+        if "STOR " in line:
+            writes.append(line)
+    return {"reads": reads[-5:], "writes": writes[-5:], "clients": sorted(clients)}
+
+
+class TrayApp(object):
+    def __init__(self):
+        self.state = "stopped"
+        self.activity = {"reads": [], "writes": [], "clients": []}
+        self.last_event = ""          # descrizione ultima operazione
+        self.last_event_time = 0.0    # epoch dell'ultima operazione
+        self.icon = None
+
+        if HAVE_NOTIFY:
+            try:
+                Notify.init(APP_TITLE)
+            except Exception:
+                pass
+
+        if HAVE_INDICATOR:
+            self.icon = AppIndicator3.Indicator.new(
+                APP_NAME, "vsftpd-tray-monitor-gray",
+                AppIndicator3.IndicatorCategory.APPLICATION_STATUS
+            )
+            self.icon.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
+            # Solo menu tasto destro: AppIndicator apre il menu col destro.
+            self.menu = self.make_menu()
+            self.icon.set_menu(self.menu)
+            # Il click centrale/sinistro mostra l'ultima operazione.
+            try:
+                self.icon.set_secondary_activate_target(self.info_activity_item)
+            except Exception:
+                pass
+        else:
+            self.status_icon = Gtk.StatusIcon()
+            self.status_icon.set_visible(True)
+            # Sinistro -> notifica ultima operazione; destro -> menu.
+            self.status_icon.connect("activate", self.on_left_click)
+            self.status_icon.connect("popup-menu", self.on_right_click)
+            self.status_icon.connect("query-tooltip", self.on_tooltip)
+            self.status_icon.set_has_tooltip(True)
+            self.menu = self.make_menu()
+
+        GLib.timeout_add(int(POLL * 1000), self.update)
+        self.update()
+
+    # ---------- menu ----------
+    def make_menu(self):
+        menu = Gtk.Menu()
+
+        info = Gtk.MenuItem(label="Informazioni")
+        info.connect("activate", self.on_info)
+        menu.append(info)
+
+        # Voce usata anche come target del click sinistro/centrale su
+        # AppIndicator: mostra l'ultima operazione.
+        self.info_activity_item = Gtk.MenuItem(label="Ultima operazione")
+        self.info_activity_item.connect("activate", lambda w: self.show_last_event())
+        menu.append(self.info_activity_item)
+
+        menu.append(Gtk.SeparatorMenuItem())
+
+        quit_item = Gtk.MenuItem(label="Chiudi programma")
+        quit_item.connect("activate", self.on_quit)
+        menu.append(quit_item)
+
+        menu.show_all()
+        return menu
+
+    # ---------- azioni ----------
+    def on_info(self, widget):
+        dialog = Gtk.MessageDialog(
+            transient_for=None, modal=True,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK, text=APP_TITLE)
+        dialog.format_secondary_text(
+            "Autore: %s\nVersione: %s" % (AUTHOR, VERSION))
+        dialog.set_title("Informazioni")
+        dialog.run()
+        dialog.destroy()
+
+    def on_quit(self, widget):
+        # Chiude solo il monitor della tray, NON vsftpd.
+        try:
+            if HAVE_NOTIFY:
+                Notify.uninit()
+        except Exception:
+            pass
+        Gtk.main_quit()
+
+    def _relative(self, epoch):
+        if not epoch:
+            return "poco fa"
+        d = int(max(0, time.time() - epoch))
+        if d < 60:
+            return "%d secondi fa" % d
+        if d < 3600:
+            return "%d minuti fa" % (d // 60)
+        if d < 86400:
+            return "%d ore fa" % (d // 3600)
+        return "%d giorni fa" % (d // 86400)
+
+    def show_last_event(self):
+        who = ", ".join(self.activity["clients"]) if self.activity["clients"] else "sconosciuto"
+        if self.last_event:
+            body = "%s\nEseguita da: %s\n%s" % (
+                self.last_event, who, self._relative(self.last_event_time))
+        else:
+            body = "Nessuna operazione recente registrata."
+        self.notify("Ultima operazione", body)
+
+    def notify(self, summary, body):
+        if HAVE_NOTIFY:
+            try:
+                n = Notify.Notification.new(summary, body, "vsftpd-tray-monitor")
+                n.show()
+                return
+            except Exception:
+                pass
+        dialog = Gtk.MessageDialog(
+            transient_for=None, modal=False,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK, text=summary)
+        dialog.format_secondary_text(body)
+        dialog.connect("response", lambda d, r: d.destroy())
+        dialog.show()
+
+    def on_left_click(self, widget):
+        self.show_last_event()
+
+    def on_right_click(self, icon, button, activate_time):
+        self.menu.popup(None, None,
+                        Gtk.StatusIcon.position_menu, icon,
+                        button, activate_time)
+
+    def on_tooltip(self, widget, x, y, keyboard_mode, tooltip):
+        tooltip.set_text(widget.get_tooltip_text() or APP_TITLE)
+        return True
+
+    # ---------- tooltip / stato ----------
+    def set_tooltip(self, text):
+        if HAVE_INDICATOR:
+            self.icon.set_title(text.splitlines()[0][:120])
+        else:
+            self.status_icon.set_tooltip_text(text)
+
+    def update(self):
+        state = service_state()
+        details = service_details()
+        activity = parse_activity()
+
+        if state == "failed":
+            visual = "error"
+        elif state != "active":
+            visual = "stopped"
+        else:
+            r = bool(activity["reads"])
+            w = bool(activity["writes"])
+            visual = "both" if r and w else "read" if r else "write" if w else "ok"
+
+        # Traccia l'ultima operazione (per la notifica del click sinistro).
+        if activity["reads"] or activity["writes"]:
+            last = (activity["reads"] + activity["writes"])[-1]
+            self.last_event = describe_line(last)
+            self.last_event_time = time.time()
+
+        self.state = visual
+        self.activity = activity
+
+        pid = details.get("MainPID", "0")
+        sub = details.get("SubState", "unknown")
+        lines = [
+            "vsftpd: " + {
+                "stopped": "FERMO",
+                "error": "ERRORE",
+                "ok": "ATTIVO",
+                "read": "ATTIVO - LETTURA",
+                "write": "ATTIVO - SCRITTURA",
+                "both": "ATTIVO - LETTURA + SCRITTURA"
+            }.get(visual, visual),
+            "PID: " + pid,
+            "Stato systemd: " + sub,
+            "Client rilevati: " + (", ".join(activity["clients"]) if activity["clients"] else "nessuno"),
+        ]
+        if activity["reads"]:
+            lines.append("Ultime letture/download:")
+            lines += ["  " + x[-180:] for x in activity["reads"][-3:]]
+        if activity["writes"]:
+            lines.append("Ultime scritture/upload:")
+            lines += ["  " + x[-180:] for x in activity["writes"][-3:]]
+
+        self.set_tooltip("\n".join(lines))
+
+        icon_name = {
+            "stopped": "vsftpd-tray-monitor-gray",
+            "ok": "vsftpd-tray-monitor-green",
+            "read": "vsftpd-tray-monitor-blue",
+            "write": "vsftpd-tray-monitor-orange",
+            "both": "vsftpd-tray-monitor-purple",
+            "error": "vsftpd-tray-monitor-red",
+        }.get(visual, "vsftpd-tray-monitor-gray")
+
+        if HAVE_INDICATOR:
+            try:
+                self.icon.set_icon_full(icon_name, lines[0])
+            except Exception:
+                pass
+        else:
+            self.status_icon.set_from_icon_name(icon_name)
+
+        return True
+
+
+def detach_from_terminal():
+    # Doppio fork + nuova sessione: il processo diventa indipendente dal
+    # terminale. Chiudendo il terminale, il monitor continua a funzionare.
+    if os.environ.get("VSFTPD_TRAY_DAEMONIZED") == "1":
+        return
+    if not (sys.stdin.isatty() or sys.stdout.isatty() or sys.stderr.isatty()):
+        # Nessun terminale di controllo (autostart/systemd): non serve.
+        return
+    try:
+        if os.fork() > 0:
+            os._exit(0)
+    except OSError:
+        return
+    os.setsid()
+    try:
+        if os.fork() > 0:
+            os._exit(0)
+    except OSError:
+        pass
+    os.environ["VSFTPD_TRAY_DAEMONIZED"] = "1"
+    devnull = os.open(os.devnull, os.O_RDWR)
+    os.dup2(devnull, 0)
+    os.dup2(devnull, 1)
+    os.dup2(devnull, 2)
+
+
+if __name__ == "__main__":
+    if "--no-daemon" not in sys.argv:
+        detach_from_terminal()
+    TrayApp()
+    Gtk.main()

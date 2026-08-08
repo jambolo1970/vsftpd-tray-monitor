@@ -1,0 +1,12 @@
+[Unit]
+Description=vsftpd Tray Monitor
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/opt/vsftpd-tray-monitor/vsftpd-tray-monitor
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
