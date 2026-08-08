@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # vsftpd Tray Monitor - monitor di vsftpd nella tray di sistema.
-# GPLv3  2026  Gianluca Bolognesi
+# Copyright (C) 2026 Gianluca Bolognesi
 #
 # Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
 # secondo i termini della GNU General Public License come pubblicata dalla
