@@ -14,12 +14,12 @@ L'icona è una cartella-server che cambia colore e badge a seconda dello stato:
 
 | Icona | Stato | Significato |
 |-------|-------|-------------|
-| ![grigia + divieto](icons/vsftpd-tray-monitor-gray.svg) grigia + divieto | fermo | il servizio vsftpd non è attivo |
-| ![verde](icons/vsftpd-tray-monitor-green.svg)verde | attivo | servizio attivo, nessun trasferimento in corso |
-| ![freccia giù blu](icons/vsftpd-tray-monitor-blu.svg)freccia giù blu | download | lettura/download in corso |
-| ![freccia su arancione](icons/vsftpd-tray-monitor-orange.svg)freccia su arancione | upload | scrittura/upload in corso |
-| ![doppia freccia viola ](icons/vsftpd-tray-monitor-purble.svg)doppia freccia viola | entrambi | download e upload contemporanei |
-| ![rossa + "!"](icons/vsftpd-tray-monitor-red.svg)rossa + "!" | errore | il servizio è in stato di errore |
+| <img src="icons/vsftpd-tray-monitor-gray.svg" alt="grigia + divieto" width="64"> grigia+divieto| fermo | il servizio vsftpd non è attivo |
+| <img src="icons/vsftpd-tray-monitor-green.svg" alt="verde" width="64"> verde | attivo | servizio attivo, nessun trasferimento in corso |
+| <img src="icons/vsftpd-tray-monitor-blue.svg" alt="freccia giù blue" width="64"> freccia giù blue  | download | lettura/download in corso |
+| <img src="icons/vsftpd-tray-monitor-orange.svg" alt="freccia su arancione" width="64"> freccia su arancione | upload | scrittura/upload in corso |
+| <img src="icons/vsftpd-tray-monitor-purple.svg" alt="doppia freccia viola" width="64"> doppia freccia viola | entrambi | download e upload contemporanei |
+| <img src="icons/vsftpd-tray-monitor-red.svg" alt="rossa + ❗️" width="64"> rossa + ❗️ | errore | il servizio è in stato di errore |
 
 L'icona torna automaticamente al verde quando l'attività termina: un
 trasferimento è considerato "in corso" solo se avvenuto negli ultimi secondi.
