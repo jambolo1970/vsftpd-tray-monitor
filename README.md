@@ -167,6 +167,11 @@ terminale, il monitor continua a funzionare. Per l'avvio automatico all'accesso
 alla sessione grafica viene installato un file autostart in
 `~/.config/autostart`.
 
+## Programmi correlati
+
+Se interessa la GUI per configurare vsftpd.conf lo trovate qui:
+[vsftpd-gui]([https://www.google.com](https://github.com/jambolo1970/vsftpd-gui)
+
 ## Licenza
 
 Questo programma è software libero: puoi ridistribuirlo e/o modificarlo secondo
