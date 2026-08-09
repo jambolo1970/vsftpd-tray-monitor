@@ -170,7 +170,7 @@ alla sessione grafica viene installato un file autostart in
 ## Programmi correlati
 
 Se interessa la GUI per configurare vsftpd.conf lo trovate qui:
-[vsftpd-gui]([https://github.com/jambolo1970/vsftpd-gui](https://github.com/jambolo1970/vsftpd-gui)
+[vsftpd-gui] [https://github.com/jambolo1970/vsftpd-gui](https://github.com/jambolo1970/vsftpd-gui)
 
 ## Licenza
 
