@@ -1,16 +1,120 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <path d="M6 20 q0-4 4-4 h14 l5 5 h25 q4 0 4 4 v25 q0 4-4 4 H10 q-4 0-4-4 Z"
-        fill="#27ae60"/>
-  <path d="M6 26 q0-4 4-4 h48 q4 0 4 4 v24 q0 4-4 4 H10 q-4 0-4-4 Z"
-        fill="#2ecc71"/>
-  <g fill="#ffffff" opacity="0.9">
-    <rect x="13" y="32" width="30" height="4" rx="2"/>
-    <rect x="13" y="41" width="30" height="4" rx="2"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   viewBox="0 0 64 64"
+   version="1.1"
+   id="svg182"
+   sodipodi:docname="vsftpd-tray-monitor-blue.svg"
+   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)">
+  <metadata
+     id="metadata188">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs186" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1131"
+     id="namedview184"
+     showgrid="false"
+     inkscape:zoom="9.8125"
+     inkscape:cx="32"
+     inkscape:cy="32"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg182" />
+  <path
+     d="m 3.43945,10.135244 q 0,-5.9029652 4.1828965,-5.9029652 H 22.262484 l 5.22862,7.3787062 h 26.143103 q 4.182897,0 4.182897,5.902966 v 36.893532 q 0,5.902964 -4.182897,5.902964 H 7.6223465 q -4.1828965,0 -4.1828965,-5.902964 z"
+     fill="#27ae60"
+     id="path162"
+     style="stroke-width:1.24227" />
+  <path
+     d="m 3.43945,18.989692 q 0,-5.902966 4.1828965,-5.902966 H 57.817104 Q 62,13.086726 62,18.989692 v 35.417791 q 0,5.902964 -4.182896,5.902964 H 7.6223465 q -4.1828965,0 -4.1828965,-5.902964 z"
+     fill="#2ecc71"
+     id="path164"
+     style="stroke-width:1.24227" />
+  <g
+     fill="#ffffff"
+     opacity="0.9"
+     id="g170"
+     transform="matrix(1.0457241,0,0,1.4757413,-2.8348946,-19.379581)">
+    <rect
+       x="13"
+       y="32"
+       width="30"
+       height="4"
+       rx="2"
+       id="rect166" />
+    <rect
+       x="13"
+       y="41"
+       width="30"
+       height="4"
+       rx="2"
+       id="rect168" />
   </g>
-  <circle cx="50" cy="34" r="2.4" fill="#ffffff" opacity="0.9"/>
-  <circle cx="50" cy="43" r="2.4" fill="#ffffff" opacity="0.9"/>
-  <circle cx="47" cy="45" r="14" fill="#ffffff"/>
-  <circle cx="47" cy="45" r="12" fill="#2388ff"/>
-  <path d="M47 38 v9 M41 45 l6 7 l6-7" fill="none" stroke="#ffffff"
-        stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse
+     cx="48.17173"
+     cy="27.955158"
+     fill="#ffffff"
+     opacity="0.9"
+     id="circle172"
+     rx="2.9229336"
+     ry="2.9942622"
+     style="stroke-width:1.23266" />
+  <ellipse
+     cx="48.17173"
+     cy="39.183643"
+     fill="#ffffff"
+     opacity="0.9"
+     id="circle174"
+     rx="2.9229336"
+     ry="2.9942622"
+     style="stroke-width:1.23266" />
+  <ellipse
+     cx="44.518063"
+     cy="41.67886"
+     fill="#ffffff"
+     id="circle176"
+     rx="17.050446"
+     ry="17.46653"
+     style="stroke-width:1.23266" />
+  <ellipse
+     cx="44.518063"
+     cy="41.67886"
+     fill="#2388ff"
+     id="circle178"
+     rx="14.614668"
+     ry="14.971311"
+     style="stroke-width:1.23266" />
+  <path
+     d="m 44.518064,32.945595 v 11.228483 m -7.307334,-2.495219 7.307334,8.733265 7.307334,-8.733265"
+     fill="none"
+     stroke="#ffffff"
+     stroke-width="5.17717"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="path180" />
 </svg>

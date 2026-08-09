@@ -1,12 +1,96 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <path d="M6 20 q0-4 4-4 h14 l5 5 h25 q4 0 4 4 v25 q0 4-4 4 H10 q-4 0-4-4 Z"
-        fill="#27ae60"/>
-  <path d="M6 26 q0-4 4-4 h48 q4 0 4 4 v24 q0 4-4 4 H10 q-4 0-4-4 Z"
-        fill="#2ecc71"/>
-  <g fill="#ffffff" opacity="0.9">
-    <rect x="13" y="32" width="30" height="4" rx="2"/>
-    <rect x="13" y="41" width="30" height="4" rx="2"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   viewBox="0 0 64 64"
+   version="1.1"
+   id="svg126"
+   sodipodi:docname="vsftpd-tray-monitor-green.svg"
+   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)">
+  <metadata
+     id="metadata132">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs130" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1131"
+     id="namedview128"
+     showgrid="false"
+     inkscape:zoom="9.8125"
+     inkscape:cx="32"
+     inkscape:cy="32"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg126" />
+  <path
+     d="M 3.439,10.134947 Q 3.439,4.232 7.6219286,4.232 H 22.262179 l 5.22866,7.378684 h 26.143304 q 4.182928,0 4.182928,5.902948 v 36.893421 q 0,5.902947 -4.182928,5.902947 H 7.6219286 Q 3.439,60.31 3.439,54.407053 Z"
+     fill="#27ae60"
+     id="path112"
+     style="stroke-width:1.24227" />
+  <path
+     d="m 3.439,18.989368 q 0,-5.902947 4.1829286,-5.902947 H 57.817071 Q 62,13.086421 62,18.989368 V 54.407053 Q 62,60.31 57.817071,60.31 H 7.6219286 Q 3.439,60.31 3.439,54.407053 Z"
+     fill="#2ecc71"
+     id="path114"
+     style="stroke-width:1.24227" />
+  <g
+     fill="#ffffff"
+     opacity="0.9"
+     id="g120"
+     transform="matrix(1.0457321,0,0,1.4757368,-2.8353929,-19.379789)">
+    <rect
+       x="13"
+       y="32"
+       width="30"
+       height="4"
+       rx="2"
+       id="rect116" />
+    <rect
+       x="13"
+       y="41"
+       width="30"
+       height="4"
+       rx="2"
+       id="rect118" />
   </g>
-  <circle cx="50" cy="34" r="2.4" fill="#ffffff" opacity="0.9"/>
-  <circle cx="50" cy="43" r="2.4" fill="#ffffff" opacity="0.9"/>
+  <ellipse
+     cx="49.451214"
+     cy="30.795263"
+     fill="#ffffff"
+     opacity="0.9"
+     id="circle122"
+     rx="2.5097573"
+     ry="3.5417686"
+     style="stroke-width:1.24227" />
+  <ellipse
+     cx="49.451214"
+     cy="44.076897"
+     fill="#ffffff"
+     opacity="0.9"
+     id="circle124"
+     rx="2.5097573"
+     ry="3.5417686"
+     style="stroke-width:1.24227" />
 </svg>
