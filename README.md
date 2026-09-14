@@ -107,6 +107,42 @@ In sintesi: `640` + gruppo è il minimo indispensabile e non espone il log agli
 altri; `644` è più comodo quando il file deve essere letto ampiamente, al
 costo di renderlo visibile a tutti.
 
+### Opzione C — lettura per tutti (`644`)
+
+La soluzione per far sì che i permessi giusti vengano **riapplicati automaticamente ogni volta che vsftpd parte o viene riavviato il server**, su una distro con systemd (ad esempio OpenSUSE) è un **override del servizio** con `ExecStartPost`:Sul server:
+
+**1. Crea un override del servizio vsftpd:**
+
+```bash
+sudo systemctl edit vsftpd
+```
+
+Questo apre un editor per un file drop-in vuoto. Inserisci:
+
+```ini
+[Service]
+ExecStartPost=/bin/bash -c 'touch /var/log/vsftpd.log; chown root:www /var/log/vsftpd.log; chmod 640 /var/log/vsftpd.log'
+```
+
+Salva ed esci. Systemd crea automaticamente `/etc/systemd/system/vsftpd.service.d/override.conf`.
+
+**2. Ricarica systemd e riavvia il servizio:**
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart vsftpd
+```
+
+**3. Verifica:**
+
+```bash
+ls -la /var/log/vsftpd.log
+```
+
+Dovresti vedere `-rw-r----- root www`.
+
+Da questo momento, **ogni volta che vsftpd parte** (boot incluso, dato che è abilitato con `systemctl enable`), l'`ExecStartPost` riapplica proprietario e permessi corretti indipendentemente da cosa abbia fatto vsftpd al file.
+
 ## Configurazione di vsftpd
 
 Perché il log dei trasferimenti venga scritto, in `/etc/vsftpd.conf` devono
